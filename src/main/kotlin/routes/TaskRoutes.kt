@@ -100,20 +100,15 @@ fun Route.taskRoutes() {
         val task = TaskRepository.add(title)
 
         if (call.isHtmx()) {
-            // Return HTML fragment for new task
-            val fragment = """<li id="task-${task.id}">
-                <span>${task.title}</span>
-                <form action="/tasks/${task.id}/delete" method="post" style="display: inline;"
-                      hx-post="/tasks/${task.id}/delete"
-                      hx-target="#task-${task.id}"
-                      hx-swap="outerHTML">
-                  <button type="submit" aria-label="Delete task: ${task.title}">Delete</button>
-                </form>
-            </li>"""
+            // Render the same list-item partial so HTMX-added tasks match the main template
+            val itemTemplate = pebble.getTemplate("tasks/_item.peb")
+            val writerItem = StringWriter()
+            val model = mapOf("task" to task)
+            itemTemplate.evaluate(writerItem, model)
 
             val status = """<div id="status" hx-swap-oob="true">Task "${task.title}" added successfully.</div>"""
 
-            return@post call.respondText(fragment + status, ContentType.Text.Html, HttpStatusCode.Created)
+            return@post call.respondText(writerItem.toString() + status, ContentType.Text.Html, HttpStatusCode.Created)
         }
 
         // No-JS: POST-Redirect-GET pattern (303 See Other)
